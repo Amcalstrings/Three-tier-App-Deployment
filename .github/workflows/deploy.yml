@@ -1,0 +1,23 @@
+name: Kubernetes Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+
+      - name: Deploy Kubernetes resources
+        run: |
+          kubectl apply -f k8s_manifests/mongo/secrets.yaml
+          kubectl apply -f k8s_manifests/mongo/deployment.yaml
+          kubectl apply -f k8s_manifests/mongo/service.yaml
+          kubectl apply -f k8s_manifests/fullstack_lb.yaml
+

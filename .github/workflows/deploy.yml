@@ -1,23 +1,32 @@
-name: Kubernetes Deployment
+name: Deploy to EKS
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up kubectl
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
         run: |
-          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
 
-      - name: Deploy Kubernetes resources
+      - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f k8s_manifests/mongo/secrets.yaml
-          kubectl apply -f k8s_manifests/mongo/deployment.yaml
-          kubectl apply -f k8s_manifests/mongo/service.yaml
-          kubectl apply -f k8s_manifests/fullstack_lb.yaml
-
+          kubectl apply -f k8s_manifests/
+          kubectl rollout restart deployment frontend -n workshop
+          kubectl rollout restart deployment backend -n workshop
